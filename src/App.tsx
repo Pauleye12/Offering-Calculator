@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, Church, History, User, Calendar, Clock, TrendingUp, Award, Users } from 'lucide-react';
+import { Calculator, History, User, Calendar, Clock, TrendingUp, Award, Users, Mars, Venus } from 'lucide-react';
 import { RCCGLogo } from './components/RCCGLogo';
 
 interface CalculationRecord {
@@ -11,11 +11,15 @@ interface CalculationRecord {
   timestamp: string;
   date: string;
   time: string;
+  maleAttendance: number;   
+  femaleAttendance: number;  
 }
 
 function App() {
   const [amount, setAmount] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
+  const [maleAttendance, setMaleAttendance] = useState<string>('');
+const [femaleAttendance, setFemaleAttendance] = useState<string>('');
   const [currentCalculation, setCurrentCalculation] = useState<{
     sixtyFive: number;
     thirtyFive: number;
@@ -73,35 +77,45 @@ function App() {
   }, [userName, amount]);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!amount || !userName.trim() || isNaN(Number(amount))) {
-      alert('Please enter a valid amount and your name');
-      return;
-    }
+  e.preventDefault();
 
-    const numAmount = Number(amount);
-    const calculation = calculatePercentages(numAmount);
-    const now = new Date();
-    
-    const newRecord: CalculationRecord = {
-      id: Date.now().toString(),
-      amount: numAmount,
-      sixtyFivePercent: calculation.sixtyFive,
-      thirtyFivePercent: calculation.thirtyFive,
-      userName: userName.trim(),
-      timestamp: now.toISOString(),
-      date: now.toLocaleDateString(),
-      time: now.toLocaleTimeString()
-    };
+  if (
+    !amount ||
+    !userName.trim() ||
+    isNaN(Number(amount)) ||
+    isNaN(Number(maleAttendance)) ||
+    isNaN(Number(femaleAttendance))
+  ) {
+    alert('Please enter a valid amount, your name, and attendance numbers');
+    return;
+  }
 
-    setHistory(prev => [newRecord, ...prev]);
-    
-    // Reset form
-    setAmount('');
-    setUserName('');
-    setCurrentCalculation(null);
+  const numAmount = Number(amount);
+  const calculation = calculatePercentages(numAmount);
+  const now = new Date();
+
+  const newRecord: CalculationRecord = {
+    id: Date.now().toString(),
+    amount: numAmount,
+    sixtyFivePercent: calculation.sixtyFive,
+    thirtyFivePercent: calculation.thirtyFive,
+    userName: userName.trim(),
+    timestamp: now.toISOString(),
+    date: now.toLocaleDateString(),
+    time: now.toLocaleTimeString(),
+    maleAttendance: Number(maleAttendance) || 0,
+    femaleAttendance: Number(femaleAttendance) || 0,
   };
+
+  setHistory(prev => [newRecord, ...prev]);
+
+  // Reset form
+  setAmount('');
+  setUserName('');
+  setMaleAttendance('');
+  setFemaleAttendance('');
+  setCurrentCalculation(null);
+};
 
   const clearHistory = () => {
     if (window.confirm('Are you sure you want to clear all calculation history?')) {
@@ -123,7 +137,13 @@ function App() {
   const totalAmount = history.reduce((sum, record) => sum + record.amount, 0);
   const total65Percent = history.reduce((sum, record) => sum + record.sixtyFivePercent, 0);
   const total35Percent = history.reduce((sum, record) => sum + record.thirtyFivePercent, 0);
-  const uniqueContributors = new Set(history.map(record => record.userName)).size;
+  //const uniqueContributors = new Set(history.map(record => record.userName)).size; //replaced with average attendance since attendance is now being included
+  const totalAttendance = history.reduce(
+  (sum, record) => sum + record.maleAttendance + record.femaleAttendance,
+  0
+);
+const averageAttendance =
+  history.length > 0 ? Math.round(totalAttendance / history.length) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -156,9 +176,12 @@ function App() {
             {history.length > 0 && (
               <div className="hidden lg:block bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-300">₦{formatCurrency(totalAmount)}</div>
-                  <div className="text-blue-200 text-sm">Total Offerings</div>
+                <div className="text-2xl font-bold text-yellow-300">₦{formatCurrency(totalAmount)}</div>
+                <div className="text-blue-200 text-sm">Total Offerings</div>
+                <div className="text-xs text-purple-200 mt-1">
+                  Avg Attendance: <span className="font-semibold">{averageAttendance}</span>
                 </div>
+              </div>
               </div>
             )}
           </div>
@@ -176,8 +199,8 @@ function App() {
                     <Calculator className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">Calculate Offering Split</h2>
-                    <p className="text-blue-100 text-sm">Enter details to calculate the distribution</p>
+                    <h2 className="text-2xl font-bold">Calculate Offering Split and Attendance</h2>
+                    <p className="text-blue-100 text-sm">Enter details to calculate the distribution and record Attendance</p>
                   </div>
                 </div>
               </div>
@@ -230,6 +253,50 @@ function App() {
                         required
                       />
                     </div>
+                  </div>
+                  <div>
+                   <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-blue-600" />
+                      Church Attendance
+                    </div>
+                  </label>
+                  <div className="flex gap-4">
+                    <div className="w-1/2">
+                      <label className="flex items-center gap-1 text-blue-700 text-xs mb-1">
+                        <Mars className="w-4 h-4" /> Male
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={maleAttendance}
+                        onChange={e => setMaleAttendance(e.target.value)}
+                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="w-1/2">
+                      <label className="flex items-center gap-1 text-pink-700 text-xs mb-1">
+                        <Venus className="w-4 h-4" /> Female
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={femaleAttendance}
+                        onChange={e => setFemaleAttendance(e.target.value)}
+                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl"
+                        placeholder="0"
+                      />
+                      {(!maleAttendance || !femaleAttendance) && (amount || userName) && (
+                                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                                          <p className="text-sm text-blue-700 flex items-center gap-2">
+                                            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                            Please enter both male and female attendance numbers
+                                          </p>
+                                        </div>
+                  )}
+                    </div>
+                  </div>
                   </div>
 
                   {currentCalculation && isCalculationReady && (
@@ -372,6 +439,16 @@ function App() {
                             <div className="text-xs text-orange-600 font-medium">35%</div>
                           </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <div className="text-center bg-blue-50 border border-blue-200 rounded-xl p-2">
+                            <div className="text-xs text-blue-600 font-medium">♂ Male</div>
+                            <div className="text-lg font-bold text-blue-700">{record.maleAttendance}</div>
+                          </div>
+                          <div className="text-center bg-pink-50 border border-pink-200 rounded-xl p-2">
+                            <div className="text-xs text-pink-600 font-medium">♀ Female</div>
+                            <div className="text-lg font-bold text-pink-700">{record.femaleAttendance}</div>
+                          </div>
+                        </div>
                       </div>
                     ))}
                     
@@ -399,7 +476,7 @@ function App() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold">Summary Statistics</h2>
-                  <p className="text-yellow-100">Overall offering insights</p>
+                  <p className="text-yellow-100">Overall offering and attendance insights</p>
                 </div>
               </div>
             </div>
@@ -420,9 +497,9 @@ function App() {
                     <Users className="w-6 h-6 text-white" />
                   </div>
                   <div className="text-3xl font-bold text-purple-600 mb-1">
-                    {uniqueContributors}
+                    {averageAttendance}
                   </div>
-                  <div className="text-gray-600 font-medium">Contributors</div>
+                  <div className="text-gray-600 font-medium">Average Attendance</div>
                 </div>
                 
                 <div className="text-center bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border border-green-200">
@@ -456,12 +533,15 @@ function App() {
                 </div>
               </div>
             </div>
+              <div className="mt-4 text-center text-sm text-gray-500">
+                <span className="font-semibold">{new Set(history.map(record => record.userName)).size}</span> unique contributors
+              </div>
           </div>
         )}
       </div>
       
       {/* Custom Scrollbar Styles */}
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
